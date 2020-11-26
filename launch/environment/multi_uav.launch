@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- Simulation configs -->
+    <arg name="numberUAVs" default="3"/>
+    <arg name="worldName" default="world_test"/>
+    <!-- Gazebo sim -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="gui" value="true"/>
+        <arg name="world_name" value="$(find multi_uav_se_mission)/worlds/$(arg worldName).world"/>
+        <arg name="debug" value="false"/>
+        <arg name="verbose" value="false"/>
+        <arg name="paused" value="false"/>
+    </include>
+    <!-- vehicle spawn -->
+    <include file="$(find multi_uav_se_mission)/launch/environment/uav_recursive.launch">
+        <arg name="numberUAVs" value="$(arg numberUAVs)"/>
+        <arg name="vehicle" value="solo_fpv_camera_down"/>
+    </include>
+</launch>

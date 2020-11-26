@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<launch>
+
+    <arg name="uavId" default="0"/>
+    <arg name="minTargetRadiusMeters" default="2.0"/>
+    <arg name="missionPlanCSV" default="$(find multi_uav_se_mission)/missions/searcher_mission.csv"/>
+    <arg name="serialPort" default="/dev/ttyUSB0"/>
+    <arg name="baud" default="57600"/>
+
+    <node pkg="multi_uav_se_mission" name="searcher_node" type="searcher_node" output="screen">
+        <!-- parameters -->
+        <param name="uavId" value="$(arg uavId)" />
+        <param name="minTargetRadiusMeters" value="$(arg minTargetRadiusMeters)" />
+        <param name="missionPlanCSV" value="$(arg missionPlanCSV)" />
+        <param name="serialPort" value="$(arg serialPort)" />
+        <param name="baud" value="$(arg baud)" />
+    </node>
+
+</launch>

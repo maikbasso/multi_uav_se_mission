@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<launch>
+
+    <include file="$(find multi_uav_se_mission)/launch/environment/multi_uav.launch">
+        <arg name="numberUAVs" value="1"/>
+        <arg name="worldName" value="world_test"/>
+    </include>
+
+    <!--<include file="$(find multi_uav_se_mission)/launch/nodes/searcher.launch">
+        <arg name="uavId" value="0"/>
+        <arg name="minTargetRadiusMeters" value="2.0"/>
+        <arg name="missionPlanCSV" value="$(find multi_uav_se_mission)/missions/searcher_mission.csv"/>
+        <arg name="serialPort" value="/dev/ttyUSB0"/>
+        <arg name="baud" value="57600"/>
+    </include>
+
+    <include file="$(find multi_uav_se_mission)/launch/nodes/worker.launch">
+        <arg name="uavId" value="1"/>
+        <arg name="altitude" value="8.0"/>
+        <arg name="taskTypes" value="[0,1,2]"/>
+        <arg name="workerAssignAtSeconds" value="5"/>
+        <arg name="serialPort" value="/dev/ttyUSB0"/>
+        <arg name="baud" value="57600"/>
+    </include>
+
+    <include file="$(find multi_uav_se_mission)/launch/nodes/worker.launch">
+        <arg name="uavId" value="2"/>
+        <arg name="altitude" value="10.0"/>
+        <arg name="taskTypes" value="[3,4]"/>
+        <arg name="workerAssignAtSeconds" value="5"/>
+        <arg name="serialPort" value="/dev/ttyUSB0"/>
+        <arg name="baud" value="57600"/>
+    </include>-->
+
+</launch>

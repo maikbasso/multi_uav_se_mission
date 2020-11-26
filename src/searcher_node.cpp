@@ -46,7 +46,6 @@ void uavMission(multi_uav::Drone *d, std::vector<std::vector<double>> mission, d
   // adding the takeoff point
   gp->addMetersToAltitude(altitude);
 
-  std::cout.precision(20);
   std::cout << "UAV " << d->parameters.id << ": going to position: {lat: " << gp->getLatitude() << ", lon: " << gp->getLongitude() << ", alt: " << gp->getAltitude() << ", yaw: " << gp->getYaw() << "}" << std::endl;
 
   d->goToGlobalPosition(gp->getLatitude(), gp->getLongitude(), gp->getAltitude(), gp->getYaw(), true);
@@ -91,6 +90,15 @@ std::vector<int> detect(cv::Mat image){
   // detect markers on the image
   cv::aruco::detectMarkers(image, dictionary, corners, ids);
 
+//  cv::Mat imageCopy;
+//  image.copyTo(imageCopy);
+//  // if at least one marker detected
+//  if (ids.size() > 0) cv::aruco::drawDetectedMarkers(imageCopy, corners, ids);
+//  cv::imshow("out", imageCopy);
+//  char c=(char) cv::waitKey(25);
+//  //if(c==27) break;
+
+
   return ids;
 }
 
@@ -112,10 +120,11 @@ bool validateTarget(Target *t, double minTargetRadiusMeters){
 
 void uavDetection(multi_uav::Drone *d, double minTargetRadiusMeters){
 
-  ros::Rate rate(1);
+  ros::Rate rate(10);
   while(ros::ok()){
 
-    cv::Mat image = d->sensors.camera.rgb.image;
+    cv::Mat image;
+    d->sensors.camera.rgb.image.copyTo(image);
     double lat = d->parameters.position.global.latitude;
     double lon = d->parameters.position.global.longitude;
     double alt = d->parameters.position.global.altitude;
@@ -125,11 +134,14 @@ void uavDetection(multi_uav::Drone *d, double minTargetRadiusMeters){
     // try to detect a target
     std::vector<int> ids = detect(image);
 
-    for (int i=0; ids.size(); i++) {
+    for (int i=0; i < ids.size(); i++) {
+
+      std::cout << "UAV " << d->parameters.id << ": target candidate type " << ids.at(i) << " detected." << std::endl;
 
       // create a candidate target
       Target *candidateTarget = new Target();
 
+      candidateTarget->type = ids.at(i);
       candidateTarget->image = image;
       candidateTarget->lat = lat;
       candidateTarget->lon = lon;
@@ -140,6 +152,7 @@ void uavDetection(multi_uav::Drone *d, double minTargetRadiusMeters){
       // if the target is valid, then add to a detected targets array
       if(validateTarget(candidateTarget, minTargetRadiusMeters)){
         detectedTargets.push_back(candidateTarget);
+        std::cout << "UAV " << d->parameters.id << ": target detected " << (detectedTargets.size()-1) << ":{type: " << candidateTarget->type << ", lat: " << candidateTarget->lat << ", lon: " << candidateTarget->lon << ", alt: " << candidateTarget->alt << ", yaw: " << candidateTarget->yaw << "}" << std::endl;
       }
     }
 
@@ -333,6 +346,9 @@ int main(int argc, char **argv){
   ros::init(argc, argv, "searcher_node");
   ros::NodeHandle nh;
 
+  // configuring cout precision
+  std::cout.precision(20);
+
   //parameters
   int uavId = 0;
   double altitude = 2.0;
@@ -397,15 +413,15 @@ int main(int argc, char **argv){
 
     multi_uav::Drone *d = new multi_uav::Drone(nh, uavId, false);
 
-    std::thread uavMissionThread(&uavMission, d, mission, altitude);
-    //std::thread uavDetectionThread(&uavDetection, d, minTargetRadiusMeters);
     std::thread rosLoopThread(&rosLoop);
+    std::thread uavMissionThread(&uavMission, d, mission, altitude);
+    std::thread uavDetectionThread(&uavDetection, d, minTargetRadiusMeters);
     //std::thread communicationSenderThread(&communicationSender, serial, uavId);
     //std::thread communicationReceiverThread(&communicationReceiver, serial, uavId);
 
-    uavMissionThread.join();
-    //uavDetectionThread.join();
     rosLoopThread.join();
+    uavMissionThread.join();
+    uavDetectionThread.join();
     //communicationSenderThread.join();
     //communicationReceiverThread.join();
 

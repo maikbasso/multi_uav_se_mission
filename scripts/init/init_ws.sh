@@ -18,7 +18,7 @@ export GAZEBO_PLUGIN_PATH=$GAZEBO_PLUGIN_PATH:/home/$USER/drone_simulator_ws/dev
 export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:/home/$USER/drone_simulator_ws/src/multi_uav_se_mission/models
 
 # set the home location of PX4
-source /home/$USER/drone_simulator_ws/multi_uav_se_mission/scripts/config/set_custom_takeoff_location.sh
+source /home/$USER/drone_simulator_ws/src/multi_uav_se_mission/scripts/config/set_custom_takeoff_location.sh
 
 # go to workspace
 cd /home/$USER/drone_simulator_ws/

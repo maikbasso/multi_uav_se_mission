@@ -8,6 +8,7 @@
 
     <!--<include file="$(find multi_uav_se_mission)/launch/nodes/searcher.launch">
         <arg name="uavId" value="0"/>
+        <arg name="altitude" value="2.0" />
         <arg name="minTargetRadiusMeters" value="2.0"/>
         <arg name="missionPlanCSV" value="$(find multi_uav_se_mission)/missions/searcher_mission.csv"/>
         <arg name="serialPort" value="/dev/ttyUSB0"/>

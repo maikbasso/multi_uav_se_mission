@@ -306,41 +306,41 @@ int main(int argc, char **argv){
     nh.getParam("searcher_node/altitude", altitude);
   }
   else {
-    std::cout << "Unable to get altitude parameter." << std::endl;
+    std::cout << "UAV " << uavId << ": Unable to get altitude parameter." << std::endl;
     return 0;
   }
   if(nh.hasParam("searcher_node/taskTypes")){
     nh.getParam("searcher_node/taskTypes", taskTypes);
   }
   else {
-    std::cout << "Unable to get taskTypes parameter." << std::endl;
+    std::cout << "UAV " << uavId << ": Unable to get taskTypes parameter." << std::endl;
     return 0;
   }
   if(nh.hasParam("searcher_node/workerAssignAtSeconds")){
     nh.getParam("searcher_node/workerAssignAtSeconds", workerAssignAtSeconds);
   }
   else {
-    std::cout << "Unable to get workerAssignAtSeconds parameter." << std::endl;
+    std::cout << "UAV " << uavId << ": Unable to get workerAssignAtSeconds parameter." << std::endl;
     return 0;
   }
   if(nh.hasParam("searcher_node/serialPort")){
     nh.getParam("searcher_node/serialPort", serialPort);
   }
   else {
-    std::cout << "Unable to get serialPort parameter." << std::endl;
+    std::cout << "UAV " << uavId << ": Unable to get serialPort parameter." << std::endl;
     return 0;
   }
   if(nh.hasParam("searcher_node/baud")){
     nh.getParam("searcher_node/baud", baud);
   }
   else {
-    std::cout << "Unable to get baud parameter." << std::endl;
+    std::cout << "UAV " << uavId << ": Unable to get baud parameter." << std::endl;
     return 0;
   }
 
   multi_uav_se_mission::CSerial *serial = new multi_uav_se_mission::CSerial();
 
-  std::cout << "Connecting on serialPort = " << serialPort << " baud = " << baud << std::endl;
+  std::cout << "UAV " << uavId << ": Connecting on serialPort = " << serialPort << " baud = " << baud << std::endl;
 
   if(serial->openPort(serialPort, baud)){
 
@@ -360,7 +360,7 @@ int main(int argc, char **argv){
 
   }
   else{
-    std::cout << "Could not connect to serial port!" << std::endl;
+    std::cout << "UAV " << uavId << ": Could not connect to serial port!" << std::endl;
   }
 
   return 0;

@@ -28,7 +28,7 @@ typedef struct Target {
 
 std::vector<Target *> detectedTargets;
 
-void uavMission(multi_uav::Drone *d, std::vector<std::vector<double>> mission){
+void uavMission(multi_uav::Drone *d, std::vector<std::vector<double>> mission, double altitude){
 
   d->configureToUseGlobalCoordinates();
 
@@ -44,16 +44,16 @@ void uavMission(multi_uav::Drone *d, std::vector<std::vector<double>> mission){
   );
 
   // adding the takeoff point
-  gp->addMetersToAltitude(5.0);
+  gp->addMetersToAltitude(altitude);
 
   std::cout.precision(20);
-  std::cout << "Drone " << d->parameters.id << ": going to position: {lat: " << gp->getLatitude() << ", lon: " << gp->getLongitude() << ", alt: " << gp->getAltitude() << ", yaw: " << gp->getYaw() << std::endl;
+  std::cout << "UAV " << d->parameters.id << ": going to position: {lat: " << gp->getLatitude() << ", lon: " << gp->getLongitude() << ", alt: " << gp->getAltitude() << ", yaw: " << gp->getYaw() << "}" << std::endl;
 
   d->goToGlobalPosition(gp->getLatitude(), gp->getLongitude(), gp->getAltitude(), gp->getYaw(), true);
 
   for (int i = 0; i < mission.size() && ros::ok(); i++) {
 
-    std::cout << "Drone " << d->parameters.id << ": going to position " << i << ":{lat: " << gp->getLatitude() << ", lon: " << gp->getLongitude() << ", alt: " << gp->getAltitude() << ", yaw: " << gp->getYaw() << std::endl;
+    std::cout << "UAV " << d->parameters.id << ": going to position " << i << ":{lat: " << gp->getLatitude() << ", lon: " << gp->getLongitude() << ", alt: " << gp->getAltitude() << ", yaw: " << gp->getYaw() << "}" << std::endl;
 
     gp->setLatitude(mission.at(i).at(0));
     gp->setLongitude(mission.at(i).at(1));
@@ -61,7 +61,7 @@ void uavMission(multi_uav::Drone *d, std::vector<std::vector<double>> mission){
     d->goToGlobalPosition(gp->getLatitude(), gp->getLongitude(), gp->getAltitude(), gp->getYaw(), true);
   }
 
-  std::cout << "Drone " << d->parameters.id << ": finishing the search mission." << std::endl;
+  std::cout << "UAV " << d->parameters.id << ": finishing the search mission." << std::endl;
 
   d->~Drone();
 }
@@ -335,6 +335,7 @@ int main(int argc, char **argv){
 
   //parameters
   int uavId = 0;
+  double altitude = 2.0;
   double minTargetRadiusMeters = 2.0;
   std::string missionPlanCSV = "";
   std::string serialPort = "";
@@ -352,38 +353,43 @@ int main(int argc, char **argv){
     nh.getParam("searcher_node/minTargetRadiusMeters", minTargetRadiusMeters);
   }
   else {
-    std::cout << "Unable to get minTargetRadiusMeters parameter." << std::endl;
+    std::cout << "UAV " << uavId << ": Unable to get minTargetRadiusMeters parameter." << std::endl;
+    return 0;
+  }
+  if(nh.hasParam("searcher_node/altitude")){
+    nh.getParam("searcher_node/altitude", altitude);
+  }
+  else {
+    std::cout << "UAV " << uavId << ": Unable to get altitude parameter." << std::endl;
     return 0;
   }
   if(nh.hasParam("searcher_node/missionPlanCSV")){
     nh.getParam("searcher_node/missionPlanCSV", missionPlanCSV);
   }
   else {
-    std::cout << "Unable to get missionPlanCSV parameter." << std::endl;
+    std::cout << "UAV " << uavId << ": Unable to get missionPlanCSV parameter." << std::endl;
     return 0;
   }
   if(nh.hasParam("searcher_node/serialPort")){
     nh.getParam("searcher_node/serialPort", serialPort);
   }
   else {
-    std::cout << "Unable to get serialPort parameter." << std::endl;
+    std::cout << "UAV " << uavId << ": Unable to get serialPort parameter." << std::endl;
     return 0;
   }
   if(nh.hasParam("searcher_node/baud")){
     nh.getParam("searcher_node/baud", baud);
   }
   else {
-    std::cout << "Unable to get baud parameter." << std::endl;
+    std::cout << "UAV " << uavId << ": Unable to get baud parameter." << std::endl;
     return 0;
   }
 
   std::vector<std::vector<double>> mission = loadMission(missionPlanCSV);
-
-  std::cout << "Mission loaded = " << mission.size() << " waypoints." << std::endl;
-
   multi_uav_se_mission::CSerial *serial = new multi_uav_se_mission::CSerial();
 
-  std::cout << "Connecting on serialPort = " << serialPort << " baud = " << baud << std::endl;
+  std::cout << "UAV " << uavId << ": Mission loaded = " << mission.size() << " waypoints." << std::endl;
+  std::cout << "UAV " << uavId << ": Connecting on serialPort = " << serialPort << " baud = " << baud << std::endl;
 
   if(mission.size() > 0 /*&& serial->openPort(serialPort, baud)*/){
 
@@ -391,7 +397,7 @@ int main(int argc, char **argv){
 
     multi_uav::Drone *d = new multi_uav::Drone(nh, uavId, false);
 
-    std::thread uavMissionThread(&uavMission, d, mission);
+    std::thread uavMissionThread(&uavMission, d, mission, altitude);
     //std::thread uavDetectionThread(&uavDetection, d, minTargetRadiusMeters);
     std::thread rosLoopThread(&rosLoop);
     //std::thread communicationSenderThread(&communicationSender, serial, uavId);
@@ -405,7 +411,7 @@ int main(int argc, char **argv){
 
   }
   else{
-    std::cout << "Could not connect to serial port!" << std::endl;
+    std::cout << "UAV " << uavId << ": Could not connect to serial port!" << std::endl;
   }
 
   return 0;

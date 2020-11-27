@@ -28,8 +28,26 @@ typedef struct Target {
 
 std::vector<Target *> detectedTargets;
 
-void uavMission(multi_uav::Drone *d, std::vector<std::vector<double>> mission, double altitude){
+void uavMission(multi_uav::Drone *d, double missionRadius, double missionStep, double missionAltitude){
 
+  // creating a grid mission
+  std::vector<std::vector<double>> missionGrid;
+
+  missionGrid.push_back({-missionRadius, -missionRadius});
+
+  double stepSignal = 1.0;
+  for (double x = -missionRadius; x < missionRadius; x = x + missionStep) {
+    for (double y = -missionRadius; y < missionRadius; y = y + missionStep) {
+
+      missionGrid.push_back({0.0, missionStep * stepSignal});
+    }
+    missionGrid.push_back({missionStep, 0.0 * stepSignal});
+    stepSignal = stepSignal * (-1.0);
+  }
+
+  std::cout << "UAV " << d->parameters.id << ": Auto Grid Mission created with " << missionGrid.size() << " waypoints." << std::endl;
+
+  // executing the mission
   d->configureToUseGlobalCoordinates();
 
   d->forceModeOffboard();
@@ -43,22 +61,34 @@ void uavMission(multi_uav::Drone *d, std::vector<std::vector<double>> mission, d
     d->parameters.orientation.global.yaw
   );
 
+  multi_uav::utils::GlobalPosition *gpHome = new multi_uav::utils::GlobalPosition(
+    d->parameters.position.global.latitude,
+    d->parameters.position.global.longitude,
+    d->parameters.position.global.altitude,
+    d->parameters.orientation.global.yaw
+  );;
+
   // adding the takeoff point
-  gp->addMetersToAltitude(altitude);
+  gp->addMetersToAltitude(missionAltitude);
+  gpHome->addMetersToAltitude(missionAltitude);
 
   std::cout << "UAV " << d->parameters.id << ": going to position: {lat: " << gp->getLatitude() << ", lon: " << gp->getLongitude() << ", alt: " << gp->getAltitude() << ", yaw: " << gp->getYaw() << "}" << std::endl;
 
   d->goToGlobalPosition(gp->getLatitude(), gp->getLongitude(), gp->getAltitude(), gp->getYaw(), true);
 
-  for (int i = 0; i < mission.size() && ros::ok(); i++) {
+  for (int i = 0; i < missionGrid.size() && ros::ok(); i++) {
 
-    std::cout << "UAV " << d->parameters.id << ": going to position " << i << ":{lat: " << gp->getLatitude() << ", lon: " << gp->getLongitude() << ", alt: " << gp->getAltitude() << ", yaw: " << gp->getYaw() << "}" << std::endl;
+    gp->addPositionOffsetInMeters(missionGrid.at(i).at(0), missionGrid.at(i).at(1));
 
-    gp->setLatitude(mission.at(i).at(0));
-    gp->setLongitude(mission.at(i).at(1));
+    std::cout << "UAV " << d->parameters.id << ": going to position " << i << " of " << missionGrid.size() << ":{lat: " << gp->getLatitude() << ", lon: " << gp->getLongitude() << ", alt: " << gp->getAltitude() << ", yaw: " << gp->getYaw() << "}" << std::endl;
 
     d->goToGlobalPosition(gp->getLatitude(), gp->getLongitude(), gp->getAltitude(), gp->getYaw(), true);
   }
+
+  // go back to the home
+  std::cout << "UAV " << d->parameters.id << ": going back to home position {lat: " << gpHome->getLatitude() << ", lon: " << gpHome->getLongitude() << ", alt: " << gpHome->getAltitude() << ", yaw: " << gpHome->getYaw() << "}" << std::endl;
+
+  d->goToGlobalPosition(gpHome->getLatitude(), gpHome->getLongitude(), gpHome->getAltitude(), gpHome->getYaw(), true);
 
   std::cout << "UAV " << d->parameters.id << ": finishing the search mission." << std::endl;
 
@@ -168,52 +198,6 @@ void rosLoop(){
     ros::spin();
     rate.sleep();
   }
-}
-
-std::vector<std::string> split(const std::string& s, char delimiter){
-   std::vector<std::string> tokens;
-   std::string token;
-   std::istringstream tokenStream(s);
-   while (std::getline(tokenStream, token, delimiter))
-   {
-      tokens.push_back(token);
-   }
-   return tokens;
-}
-
-std::vector<std::vector<double>> loadMission(std::string filePath){
-
-  // open file
-  std::ifstream infile(filePath);
-
-  std::vector<std::vector<double>> mission;
-
-  //read file
-  std::string line;
-  int lineCount = -1;
-  while(std::getline(infile, line)){
-
-    lineCount++; // ignoring the first line
-
-    if(lineCount == 0) continue;
-
-    std::vector<std::string> items = split(line, ',');
-
-    if(items.size() == 2){
-
-      std::vector<double> p;
-
-      for (int i=0; i<items.size(); i++) {
-        p.push_back(std::stod(items.at(i)));
-      }
-
-      mission.push_back(p);
-
-    }
-  }
-
-  return mission;
-
 }
 
 void printFrame(int uavId, std::string msg, std::vector<unsigned char> frame){
@@ -367,9 +351,10 @@ int main(int argc, char **argv){
 
   //parameters
   int uavId = 0;
-  double altitude = 2.0;
+  double missionRadius = 10.0;
+  double missionStep = 1.0;
+  double missionAltitude = 2.0;
   double minTargetRadiusMeters = 2.0;
-  std::string missionPlanCSV = "";
   std::string serialPort = "";
   int baud = 9600;
 
@@ -388,18 +373,25 @@ int main(int argc, char **argv){
     std::cout << "UAV " << uavId << ": Unable to get minTargetRadiusMeters parameter." << std::endl;
     return 0;
   }
-  if(nh.hasParam("searcher_node/altitude")){
-    nh.getParam("searcher_node/altitude", altitude);
+  if(nh.hasParam("searcher_node/missionRadius")){
+    nh.getParam("searcher_node/missionRadius", missionRadius);
   }
   else {
-    std::cout << "UAV " << uavId << ": Unable to get altitude parameter." << std::endl;
+    std::cout << "UAV " << uavId << ": Unable to get missionRadius parameter." << std::endl;
     return 0;
   }
-  if(nh.hasParam("searcher_node/missionPlanCSV")){
-    nh.getParam("searcher_node/missionPlanCSV", missionPlanCSV);
+  if(nh.hasParam("searcher_node/missionStep")){
+    nh.getParam("searcher_node/missionStep", missionStep);
   }
   else {
-    std::cout << "UAV " << uavId << ": Unable to get missionPlanCSV parameter." << std::endl;
+    std::cout << "UAV " << uavId << ": Unable to get missionStep parameter." << std::endl;
+    return 0;
+  }
+  if(nh.hasParam("searcher_node/missionAltitude")){
+    nh.getParam("searcher_node/missionAltitude", missionAltitude);
+  }
+  else {
+    std::cout << "UAV " << uavId << ": Unable to get missionAltitude parameter." << std::endl;
     return 0;
   }
   if(nh.hasParam("searcher_node/serialPort")){
@@ -417,20 +409,18 @@ int main(int argc, char **argv){
     return 0;
   }
 
-  std::vector<std::vector<double>> mission = loadMission(missionPlanCSV);
   multi_uav_se_mission::CSerial *serial = new multi_uav_se_mission::CSerial();
 
-  std::cout << "UAV " << uavId << ": Mission loaded = " << mission.size() << " waypoints." << std::endl;
   std::cout << "UAV " << uavId << ": Connecting on serialPort = " << serialPort << " baud = " << baud << std::endl;
 
-  if(mission.size() > 0 && serial->openPort(serialPort, baud)){
+  if(serial->openPort(serialPort, baud)){
 
     serial->setMessageBlockSize(MESSAGE_BLOCK_SIZE_BYTES);
 
     multi_uav::Drone *d = new multi_uav::Drone(nh, uavId, false);
 
     std::thread rosLoopThread(&rosLoop);
-    std::thread uavMissionThread(&uavMission, d, mission, altitude);
+    std::thread uavMissionThread(&uavMission, d, missionRadius, missionStep, missionAltitude);
     std::thread uavDetectionThread(&uavDetection, d, minTargetRadiusMeters);
     std::thread communicationSenderThread(&communicationSender, serial, uavId);
     std::thread communicationReceiverThread(&communicationReceiver, serial, uavId);

@@ -131,10 +131,10 @@ std::vector<unsigned char> CSerial::readDataBlock(){
     if(n > 0){
       data.push_back(buffer[0]);
     }
-    else {
-      if(this->isNonBlocking == false) this->closePort();
-      break;
-    }
+//    else {
+//      if(this->isNonBlocking == false) this->closePort();
+//      break;
+//    }
   }
 
   return data;

@@ -136,7 +136,7 @@ void uavDetection(multi_uav::Drone *d, double minTargetRadiusMeters){
 
     for (int i=0; i < ids.size(); i++) {
 
-      std::cout << "UAV " << d->parameters.id << ": target candidate type " << ids.at(i) << " detected." << std::endl;
+      //std::cout << "UAV " << d->parameters.id << ": target candidate type " << ids.at(i) << " detected." << std::endl;
 
       // create a candidate target
       Target *candidateTarget = new Target();
@@ -216,6 +216,17 @@ std::vector<std::vector<double>> loadMission(std::string filePath){
 
 }
 
+void printFrame(int uavId, std::string msg, std::vector<unsigned char> frame){
+
+  std::cout << "UAV " << uavId << ": " << msg << " ";
+  for (int i = 0; i < frame.size(); i++) {
+    int n = (int) multi_uav_se_mission::TypeParser::ucharToInt8t(frame[i]);
+    std::cout << n << " ";
+  }
+  std::cout << std::endl;
+
+}
+
 void communicationSender(multi_uav_se_mission::CSerial * serial, int uavId){
 
   ros::Rate rate(1);
@@ -261,6 +272,8 @@ void communicationSender(multi_uav_se_mission::CSerial * serial, int uavId){
         //send message
         serial->writeDataInBlocks(frameToSend);
 
+        printFrame(uavId, "sending message", frameToSend);
+
         // sleep
         rate.sleep();
 
@@ -282,6 +295,8 @@ void communicationReceiver(multi_uav_se_mission::CSerial * serial, int uavId){
       // received frame
       ////////////////////////////
       std::vector<unsigned char> frame = serial->readDataBlock();
+
+      printFrame(uavId, "receiving message", frame);
 
       // if frame size is different, ignore this frame
       if(frame.size() != MESSAGE_BLOCK_SIZE_BYTES) continue;
@@ -323,11 +338,12 @@ void communicationReceiver(multi_uav_se_mission::CSerial * serial, int uavId){
 
 
       // if searcher id == uav id and detected object contains
-      if(searcherId == uavId && ((detectedTargets.size() -1) > objectId)){
+      if(searcherId == uavId && (detectedTargets.size() > objectId)){
 
         // if target types matches
         if (detectedTargets.at(objectId)->type == objectType) {
           detectedTargets.at(objectId)->isTargetReceivedByWorker = true;
+          std::cout << "UAV " << uavId << ": target " << objectId << " received by worker " << workerId << "." << std::endl;
         }
 
       }
@@ -407,7 +423,7 @@ int main(int argc, char **argv){
   std::cout << "UAV " << uavId << ": Mission loaded = " << mission.size() << " waypoints." << std::endl;
   std::cout << "UAV " << uavId << ": Connecting on serialPort = " << serialPort << " baud = " << baud << std::endl;
 
-  if(mission.size() > 0 /*&& serial->openPort(serialPort, baud)*/){
+  if(mission.size() > 0 && serial->openPort(serialPort, baud)){
 
     serial->setMessageBlockSize(MESSAGE_BLOCK_SIZE_BYTES);
 
@@ -416,19 +432,21 @@ int main(int argc, char **argv){
     std::thread rosLoopThread(&rosLoop);
     std::thread uavMissionThread(&uavMission, d, mission, altitude);
     std::thread uavDetectionThread(&uavDetection, d, minTargetRadiusMeters);
-    //std::thread communicationSenderThread(&communicationSender, serial, uavId);
-    //std::thread communicationReceiverThread(&communicationReceiver, serial, uavId);
+    std::thread communicationSenderThread(&communicationSender, serial, uavId);
+    std::thread communicationReceiverThread(&communicationReceiver, serial, uavId);
 
     rosLoopThread.join();
     uavMissionThread.join();
     uavDetectionThread.join();
-    //communicationSenderThread.join();
-    //communicationReceiverThread.join();
+    communicationSenderThread.join();
+    communicationReceiverThread.join();
 
   }
   else{
     std::cout << "UAV " << uavId << ": Could not connect to serial port!" << std::endl;
   }
+
+  serial->~CSerial();
 
   return 0;
 

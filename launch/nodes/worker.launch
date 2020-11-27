@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <launch>
 
-    <arg name="uavId" default="0"/>
-    <arg name="altitude" default="8.0"/>
-    <arg name="taskTypes" default="[0,1,2]"/>
-    <arg name="workerAssignAtSeconds" default="5"/>
-    <arg name="serialPort" default="/dev/ttyUSB0"/>
+    <arg name="uavId" default="1"/>
+    <arg name="altitude" default="5.0"/>
+    <arg name="taskTypes" default="0,1,2,3,4"/>
+    <arg name="taskAssignAtSeconds" default="5"/>
+    <arg name="serialPort" default="/dev/pts/6"/>
     <arg name="baud" default="57600"/>
 
     <node pkg="multi_uav_se_mission" name="worker_node" type="worker_node" output="screen">
@@ -13,7 +13,7 @@
         <param name="uavId" value="$(arg uavId)" />
         <param name="altitude" value="$(arg altitude)" />
         <param name="taskTypes" value="$(arg taskTypes)" />
-        <param name="workerAssignAtSeconds" value="$(arg workerAssignAtSeconds)" />
+        <param name="taskAssignAtSeconds" value="$(arg taskAssignAtSeconds)" />
         <param name="serialPort" value="$(arg serialPort)" />
         <param name="baud" value="$(arg baud)" />
     </node>

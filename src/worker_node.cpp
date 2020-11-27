@@ -4,7 +4,6 @@
 
 #include <string>
 #include <vector>
-#include <map>
 #include <chrono>
 #include <ros/ros.h>
 #include <multi_uav/Drone.h>
@@ -25,16 +24,17 @@ typedef struct Task {
   double distance;
   bool isForMe;
   bool isAccomplished;
+  std::chrono::seconds createdAt;
 } Task;
 
 typedef struct WorkerCandidate {
+  int taskId;
   int workerId;
   double distance;
-  std::chrono::seconds time;
 } WorkerCandidate;
 
 std::vector<Task *> tasks;
-std::map<int, WorkerCandidate *> workerCandidates;
+std::vector<WorkerCandidate *> workerCandidates;
 
 void rosLoop(){
   ros::Rate rate(20);
@@ -44,7 +44,7 @@ void rosLoop(){
   }
 }
 
-void taskPerformer(multi_uav::Drone *d, double altitude){
+void taskPerformer(multi_uav::Drone *d, double altitude, int taskAssignAtSeconds){
 
   // go to the target and do something
 
@@ -54,17 +54,41 @@ void taskPerformer(multi_uav::Drone *d, double altitude){
 
   d->arm();
 
-  d->takeOff(altitude);
+  multi_uav::utils::GlobalPosition *gp = new multi_uav::utils::GlobalPosition(
+    d->parameters.position.global.latitude,
+    d->parameters.position.global.longitude,
+    d->parameters.position.global.altitude,
+    d->parameters.orientation.global.yaw
+  );
 
-  ros::Rate rate(1);
+  // adding the takeoff point
+  gp->addMetersToAltitude(altitude);
+
+  std::cout << "UAV " << d->parameters.id << ": going to position: {lat: " << gp->getLatitude() << ", lon: " << gp->getLongitude() << ", alt: " << gp->getAltitude() << ", yaw: " << gp->getYaw() << "}" << std::endl;
+
+  d->goToGlobalPosition(gp->getLatitude(), gp->getLongitude(), gp->getAltitude(), gp->getYaw(), true);
+
+  int state = 1;
+
   while(ros::ok()){
 
     for (auto &t : tasks) {
 
-      if(!t->isAccomplished && t->isForMe){
+      auto currentTime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch());
+      std::chrono::seconds sec(taskAssignAtSeconds);
+
+      if(
+         t->isAccomplished == false &&
+         t->isForMe == true &&
+         ((currentTime - t->createdAt) > sec)
+         ){
 
         // go to the task
-        d->goToGlobalPosition(t->lat, t->lon, altitude, t->yaw, true);
+        gp->setLatitude(t->lat);
+        gp->setLongitude(t->lon);
+        gp->setYaw(t->yaw);
+        std::cout << "UAV " << d->parameters.id << ": going to target position: {lat: " << gp->getLatitude() << ", lon: " << gp->getLongitude() << ", alt: " << gp->getAltitude() << ", yaw: " << gp->getYaw() << "}" << std::endl;
+        d->goToGlobalPosition(gp->getLatitude(), gp->getLongitude(), gp->getAltitude(), gp->getYaw(), true);
 
         // do something
 
@@ -75,12 +99,28 @@ void taskPerformer(multi_uav::Drone *d, double altitude){
 
     }
 
-    rate.sleep();
+    // keeps the uav moving in its current position space
+
+    gp->addPositionOffsetInMeters(0.3*state,0.3*state);
+    state *= -1;
+
+    std::cout << "UAV " << d->parameters.id << ": going to position: {lat: " << gp->getLatitude() << ", lon: " << gp->getLongitude() << ", alt: " << gp->getAltitude() << ", yaw: " << gp->getYaw() << "}" << std::endl;
+    d->goToGlobalPosition(gp->getLatitude(), gp->getLongitude(), gp->getAltitude(), gp->getYaw(), true);
+
   }
 
-  d->land();
-
   d->~Drone();
+
+}
+
+void printFrame(int uavId, std::string msg, std::vector<unsigned char> frame){
+
+  std::cout << "UAV " << uavId << ": " << msg << " ";
+  for (int i = 0; i < frame.size(); i++) {
+    int n = (int) multi_uav_se_mission::TypeParser::ucharToInt8t(frame[i]);
+    std::cout << n << " ";
+  }
+  std::cout << std::endl;
 
 }
 
@@ -91,6 +131,8 @@ void communication(multi_uav_se_mission::CSerial *serial, multi_uav::Drone *d, s
     // received frame
     ////////////////////////////
     std::vector<unsigned char> frame = serial->readDataBlock();
+
+    printFrame(d->parameters.id, "received message", frame);
 
     // if frame size is different, ignore this frame
     if(frame.size() != MESSAGE_BLOCK_SIZE_BYTES) continue;
@@ -109,7 +151,7 @@ void communication(multi_uav_se_mission::CSerial *serial, multi_uav::Drone *d, s
     i += multi_uav_se_mission::TypeParser::SIZE_INT8_T_BYTES;
 
     // handle all message types
-    if(messageType != (int8_t) 0){
+    if(messageType == (int8_t) 0){
 
       //searcher id
       int searcherId = multi_uav_se_mission::TypeParser::ucharArrayToInt(multi_uav_se_mission::Arrays::subvector(frame, i, multi_uav_se_mission::TypeParser::SIZE_INT_BYTES));
@@ -166,25 +208,46 @@ void communication(multi_uav_se_mission::CSerial *serial, multi_uav::Drone *d, s
 
         serial->writeDataInBlocks(msg1Frame);
 
-        Task *t = new Task();
+        printFrame(d->parameters.id, "sending message", msg1Frame);
 
-        t->searcherId = searcherId;
-        t->objectId = objectId;
-        t->objectType = objectType;
-        t->lat = lat;
-        t->lon = lon;
-        t->alt = alt;
-        t->yaw = yaw;
-        t->distance = distance;
-        t->isForMe = false;
-        t->isAccomplished = false;
+        // verify if task does not exists
+        bool canCreateNewTask = true;
+        for (auto &task : tasks) {
 
-        tasks.push_back(t);
+          if(
+             task->searcherId == searcherId &&
+             task->objectId == objectId &&
+             task->objectType == objectType
+             ){
+            canCreateNewTask = false;
+            break;
+          }
+
+        }
+
+        if(canCreateNewTask){
+
+          Task *t = new Task();
+
+          t->searcherId = searcherId;
+          t->objectId = objectId;
+          t->objectType = objectType;
+          t->lat = lat;
+          t->lon = lon;
+          t->alt = alt;
+          t->yaw = yaw;
+          t->distance = distance;
+          t->isForMe = true;
+          t->isAccomplished = false;
+          t->createdAt = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch());
+
+          tasks.push_back(t);
+        }
 
       }
 
     }
-    else if(messageType != (int8_t) 1){
+    else if(messageType == (int8_t) 1){
 
       //searcher id
       int searcherId = multi_uav_se_mission::TypeParser::ucharArrayToInt(multi_uav_se_mission::Arrays::subvector(frame, i, multi_uav_se_mission::TypeParser::SIZE_INT_BYTES));
@@ -219,14 +282,37 @@ void communication(multi_uav_se_mission::CSerial *serial, multi_uav::Drone *d, s
         }
       }
 
-      // adiciono em uma lista de candidatos para a tarefa
-      WorkerCandidate *wc = new WorkerCandidate();
-      wc->workerId = workerId;
-      wc->distance = distance;
-      wc->time = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch());
+      if(taskId != -1){
 
-      workerCandidates[taskId] = wc;
+        // worker candidate
+        WorkerCandidate *wc = new WorkerCandidate();
+        wc->taskId = taskId;
+        wc->workerId = workerId;
+        wc->distance = distance;
 
+        // check if task is not for me
+        if(tasks.at(taskId)->distance > wc->distance){
+          tasks.at(taskId)->isForMe = false;
+        }
+
+        // create the new worker candidate
+        bool canAddWorkerCandidate = true;
+
+        for (int i = 0; i < workerCandidates.size(); i++) {
+          if(
+             workerCandidates.at(i)->taskId == taskId &&
+             workerCandidates.at(i)->workerId == workerId
+             ){
+            canAddWorkerCandidate = false;
+            break;
+          }
+        }
+
+        if(canAddWorkerCandidate){
+          workerCandidates.push_back(wc);
+        }
+
+      }
 
     }
 
@@ -235,103 +321,79 @@ void communication(multi_uav_se_mission::CSerial *serial, multi_uav::Drone *d, s
   serial->~CSerial();
 }
 
-// passado um tempo a ser definido, se possuir a menor distancia a tarefa em questão é pra mim
-void workerAssign(int workerAssignAtSeconds){
-
-  ros::Rate rate(1);
-  while (ros::ok()) {
-
-    for (int i = 0; tasks.size(); i++) {
-
-      if(
-         tasks.at(i)->isAccomplished == false &&
-         tasks.at(i)->isForMe == false
-         ){
-
-        auto minTime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch());
-
-        for (auto & wc : workerCandidates) {
-
-          if(wc.first == i){
-
-            // verify if the distance
-            if(wc.second->distance < tasks.at(i)->distance){
-              tasks.at(i)->isAccomplished = true;
-            }
-
-            if(minTime > wc.second->time){
-              minTime = wc.second->time;
-            }
-
-          }
-
-        }
-
-        // if time is past than limitTime work is for me
-        std::chrono::seconds sec(workerAssignAtSeconds);
-        if(minTime >= sec){
-          tasks.at(i)->isForMe = true;
-        }
-
-      }
-
-    }
-
-    rate.sleep();
-  }
-
+std::vector<std::string> split(const std::string& s, char delimiter){
+   std::vector<std::string> tokens;
+   std::string token;
+   std::istringstream tokenStream(s);
+   while (std::getline(tokenStream, token, delimiter))
+   {
+      tokens.push_back(token);
+   }
+   return tokens;
 }
 
 int main(int argc, char **argv){
   ros::init(argc, argv, "worker_node");
   ros::NodeHandle nh;
 
+  // configuring cout precision
+  std::cout.precision(20);
+
   // parameters
   int uavId = 0;
   double altitude = 2.0;
   std::vector<int> taskTypes;
-  int workerAssignAtSeconds = 5;
+  int taskAssignAtSeconds = 5;
   std::string serialPort = "";
   int baud = 9600;
 
   //get parameters
-  if(nh.hasParam("searcher_node/uavId")){
-    nh.getParam("searcher_node/uavId", uavId);
+  if(nh.hasParam("worker_node/uavId")){
+    nh.getParam("worker_node/uavId", uavId);
   }
   else {
     std::cout << "Unable to get uavId parameter." << std::endl;
     return 0;
   }
-  if(nh.hasParam("searcher_node/altitude")){
-    nh.getParam("searcher_node/altitude", altitude);
+  if(nh.hasParam("worker_node/altitude")){
+    nh.getParam("worker_node/altitude", altitude);
   }
   else {
     std::cout << "UAV " << uavId << ": Unable to get altitude parameter." << std::endl;
     return 0;
   }
-  if(nh.hasParam("searcher_node/taskTypes")){
-    nh.getParam("searcher_node/taskTypes", taskTypes);
+  if(nh.hasParam("worker_node/taskTypes")){
+
+    std::string taskTypesStr;
+
+    nh.getParam("worker_node/taskTypes", taskTypesStr);
+
+    std::vector<std::string> taskTypesStrArray = split(taskTypesStr, ',');
+
+    for(int z=0; z < taskTypesStrArray.size(); z++){
+      taskTypes.push_back(std::stoi(taskTypesStrArray.at(z)));
+    }
   }
   else {
     std::cout << "UAV " << uavId << ": Unable to get taskTypes parameter." << std::endl;
     return 0;
   }
-  if(nh.hasParam("searcher_node/workerAssignAtSeconds")){
-    nh.getParam("searcher_node/workerAssignAtSeconds", workerAssignAtSeconds);
+  if(nh.hasParam("worker_node/taskAssignAtSeconds")){
+    nh.getParam("worker_node/taskAssignAtSeconds", taskAssignAtSeconds);
   }
   else {
-    std::cout << "UAV " << uavId << ": Unable to get workerAssignAtSeconds parameter." << std::endl;
+    std::cout << "UAV " << uavId << ": Unable to get taskAssignAtSeconds parameter." << std::endl;
     return 0;
   }
-  if(nh.hasParam("searcher_node/serialPort")){
-    nh.getParam("searcher_node/serialPort", serialPort);
+  if(nh.hasParam("worker_node/serialPort")){
+    nh.getParam("worker_node/serialPort", serialPort);
   }
   else {
     std::cout << "UAV " << uavId << ": Unable to get serialPort parameter." << std::endl;
     return 0;
   }
-  if(nh.hasParam("searcher_node/baud")){
-    nh.getParam("searcher_node/baud", baud);
+  if(nh.hasParam("worker_node/baud")){
+    nh.getParam("worker_node/baud", baud);
   }
   else {
     std::cout << "UAV " << uavId << ": Unable to get baud parameter." << std::endl;
@@ -350,18 +412,18 @@ int main(int argc, char **argv){
 
     std::thread rosLoopThread(&rosLoop);
     std::thread communicationThread(&communication, serial, d, taskTypes);
-    std::thread taskPerformerThread(&taskPerformer, d, altitude);
-    std::thread workerAssignThread(&workerAssign, workerAssignAtSeconds);
+    std::thread taskPerformerThread(&taskPerformer, d, altitude, taskAssignAtSeconds);
 
     rosLoopThread.join();
     communicationThread.join();
     taskPerformerThread.join();
-    workerAssignThread.join();
 
   }
   else{
     std::cout << "UAV " << uavId << ": Could not connect to serial port!" << std::endl;
   }
+
+  serial->~CSerial();
 
   return 0;
 

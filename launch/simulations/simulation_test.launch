@@ -16,8 +16,8 @@
     <!-- searcher node -->
     <node pkg="multi_uav_se_mission" name="searcher_node" type="searcher_node" output="screen" launch-prefix="bash -c 'sleep $(arg nodeStartDelay); $0 $@'">
         <param name="uavId" value="0" />
-        <param name="missionRadius" value="5.0" />
-        <param name="missionStep" value="1.0" />
+        <param name="missionRadius" value="10.0" />
+        <param name="missionStep" value="2.0" />
         <param name="missionAltitude" value="2.0" />
         <param name="minTargetRadiusMeters" value="2.0" />
         <param name="serialPort" value="/tmp/ttyV0" />

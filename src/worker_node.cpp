@@ -101,7 +101,7 @@ void taskPerformer(multi_uav::Drone *d, double altitude, int taskAssignAtSeconds
 
     // keeps the uav moving in its current position space
 
-    gp->addPositionOffsetInMeters(0.3*state,0.3*state);
+    gp->addPositionOffsetInMeters(1*state,1*state);
     state *= -1;
 
     std::cout << "UAV " << d->parameters.id << ": going to position: {lat: " << gp->getLatitude() << ", lon: " << gp->getLongitude() << ", alt: " << gp->getAltitude() << ", yaw: " << gp->getYaw() << "}" << std::endl;

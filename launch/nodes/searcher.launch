@@ -5,7 +5,7 @@
     <arg name="altitude" default="2.0"/>
     <arg name="minTargetRadiusMeters" default="2.0"/>
     <arg name="missionPlanCSV" default="$(find multi_uav_se_mission)/missions/searcher_mission.csv"/>
-    <arg name="serialPort" default="/dev/pts/0"/>
+    <arg name="serialPort" default="/dev/ttyUSB0"/>
     <arg name="baud" default="57600"/>
 
     <node pkg="multi_uav_se_mission" name="searcher_node" type="searcher_node" output="screen">

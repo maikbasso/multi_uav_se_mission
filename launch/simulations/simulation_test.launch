@@ -1,27 +1,36 @@
 <?xml version="1.0"?>
 <launch>
 
+    <!-- delay used to wait for the simulator initialization -->
+    <arg name="nodeStartDelay" default="15.0" />
+
+    <!-- setup the virtual serial ports -->
+    <node pkg="multi_uav_se_mission" type="setup_virtual_serial_ports.sh" args="" name="setup_virtual_serial_ports_script" output="screen" />
+
+    <!-- simulator -->
     <include file="$(find multi_uav_se_mission)/launch/environment/multi_uav.launch">
         <arg name="numberUAVs" value="2"/>
         <arg name="worldName" value="world_test"/>
     </include>
 
-    <!--<include file="$(find multi_uav_se_mission)/launch/nodes/searcher.launch">
-        <arg name="uavId" value="0"/>
-        <arg name="altitude" value="2.0" />
-        <arg name="minTargetRadiusMeters" value="2.0"/>
-        <arg name="missionPlanCSV" value="$(find multi_uav_se_mission)/missions/searcher_mission.csv"/>
-        <arg name="serialPort" value="/dev/pts/0"/>
-        <arg name="baud" value="57600"/>
-    </include>-->
+    <!-- searcher node -->
+    <node pkg="multi_uav_se_mission" name="searcher_node" type="searcher_node" output="screen" launch-prefix="bash -c 'sleep $(arg nodeStartDelay); $0 $@'">
+        <param name="uavId" value="0" />
+        <param name="altitude" value="2.0" />
+        <param name="minTargetRadiusMeters" value="2.0" />
+        <param name="missionPlanCSV" value="$(find multi_uav_se_mission)/missions/searcher_mission.csv" />
+        <param name="serialPort" value="/tmp/ttyV0" />
+        <param name="baud" value="57600" />
+    </node>
 
-    <!--<include file="$(find multi_uav_se_mission)/launch/nodes/worker.launch">
-        <arg name="uavId" value="1"/>
-        <arg name="altitude" value="5.0"/>
-        <arg name="taskTypes" value="0,1,2,3,4"/>
-        <arg name="taskAssignAtSeconds" value="5"/>
-        <arg name="serialPort" value="/dev/pts/6"/>
-        <arg name="baud" value="57600"/>
-    </include>-->
+    <!-- worker node -->
+    <node pkg="multi_uav_se_mission" name="worker_node" type="worker_node" output="screen" launch-prefix="bash -c 'sleep $(arg nodeStartDelay); $0 $@'">
+        <param name="uavId" value="1" />
+        <param name="altitude" value="5.0" />
+        <param name="taskTypes" value="0,1,2,3,4" />
+        <param name="taskAssignAtSeconds" value="5" />
+        <param name="serialPort" value="/tmp/ttyV1" />
+        <param name="baud" value="57600" />
+    </node>
 
 </launch>

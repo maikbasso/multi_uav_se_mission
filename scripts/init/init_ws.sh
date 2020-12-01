@@ -19,5 +19,3 @@ export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:/home/$USER/drone_simulator_ws/src/m
 
 # go to workspace
 cd /home/$USER/drone_simulator_ws/
-
-exit 0

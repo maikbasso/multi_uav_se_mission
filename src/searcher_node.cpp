@@ -66,7 +66,7 @@ void uavMission(multi_uav::Drone *d, double missionRadius, double missionStep, d
     d->parameters.position.global.longitude,
     d->parameters.position.global.altitude,
     d->parameters.orientation.global.yaw
-  );;
+  );
 
   // adding the takeoff point
   gp->addMetersToAltitude(missionAltitude);

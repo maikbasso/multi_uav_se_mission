@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<launch>
+
+    <arg name="experimentId" default="1" />
+
+    <group ns="uav0">
+
+        <!-- MAVROS -->
+        <include file="$(find mavros)/launch/px4.launch">
+            <arg name="fcu_url" value="/dev/serial0:57600"/>
+            <arg name="gcs_url" value=""/>
+            <arg name="tgt_system" value="1"/>
+            <arg name="tgt_component" value="1"/>
+        </include>
+
+        <!-- raspicam -->
+        <node type="raspicam_node" pkg="raspicam_node" name="raspicam_node" output="screen">
+            <param name="camera_info_url" value="package://raspicam_node/camera_info/camera_module_v2_640x480.yaml"/>
+            <param name="width" value="640"/>
+            <param name="height" value="480"/>
+            <param name="framerate" value="30"/>
+            <param name="camera_frame_id" value="raspicam"/>
+            <remap from="raspicam_node/image_raw" to="/uav0/camera/rgb/image_raw" />
+            <remap from="raspicam_node/camera_info" to="/uav0/camera/rgb/camera_info" />
+        </node>
+        <!-- raspicam start capture -->
+        <node pkg="rosservice" type="rosservice" name="start_capture" args="call --wait raspicam_node/start_capture"/>
+
+        <!-- searcher node -->
+        <node pkg="multi_uav_se_mission" name="searcher_node" type="searcher_node" output="screen">
+            <param name="uavId" value="0" />
+            <param name="missionRadius" value="5.0" />
+            <param name="missionStep" value="0.5" />
+            <param name="missionAltitude" value="2.0" />
+            <param name="minTargetRadiusMeters" value="1.0" />
+            <param name="serialPort" value="/dev/ttyUSB0" />
+            <param name="baud" value="57600" />
+        </node>
+
+        <!-- rosbag -->
+        <node pkg="rosbag" type="record" name="record" args="-o $(find multi_uav_se_mission)/bag/uav0_$(arg experimentId) -a"/>
+
+    </group>
+
+</launch>

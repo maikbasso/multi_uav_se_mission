@@ -99,28 +99,28 @@ void taskPerformer(multi_uav::Drone *d, double altitude, int taskAssignAtSeconds
 
   // go to the target and do something
 
-  d->configureToUseGlobalCoordinates();
+  //d->configureToUseGlobalCoordinates();
 
-  d->forceModeOffboard();
+  //d->forceModeOffboard();
 
-  d->arm();
+  //d->arm();
 
-  multi_uav::utils::GlobalPosition *gp = new multi_uav::utils::GlobalPosition(
-    d->parameters.position.global.latitude,
-    d->parameters.position.global.longitude,
-    d->parameters.position.global.altitude,
-    d->parameters.orientation.global.yaw
-  );
+//  multi_uav::utils::GlobalPosition *gp = new multi_uav::utils::GlobalPosition(
+//    d->parameters.position.global.latitude,
+//    d->parameters.position.global.longitude,
+//    d->parameters.position.global.altitude,
+//    d->parameters.orientation.global.yaw
+//  );
 
   // adding the takeoff point
-  gp->addMetersToAltitude(altitude);
+  //gp->addMetersToAltitude(altitude);
 
-  std::stringstream ss;
-  ss.precision(20);
-  ss << "UAV " << d->parameters.id << ": going to position: {lat: " << gp->getLatitude() << ", lon: " << gp->getLongitude() << ", alt: " << gp->getAltitude() << ", yaw: " << gp->getYaw() << "}";
-  print(ss.str());
+//  std::stringstream ss;
+//  ss.precision(20);
+//  ss << "UAV " << d->parameters.id << ": going to position: {lat: " << gp->getLatitude() << ", lon: " << gp->getLongitude() << ", alt: " << gp->getAltitude() << ", yaw: " << gp->getYaw() << "}";
+//  print(ss.str());
 
-  d->goToGlobalPosition(gp->getLatitude(), gp->getLongitude(), gp->getAltitude(), gp->getYaw(), true);
+//  d->goToGlobalPosition(gp->getLatitude(), gp->getLongitude(), gp->getAltitude(), gp->getYaw(), true);
 
   int state = 1;
 
@@ -138,14 +138,14 @@ void taskPerformer(multi_uav::Drone *d, double altitude, int taskAssignAtSeconds
          ){
 
         // go to the task
-        gp->setLatitude(t->lat);
-        gp->setLongitude(t->lon);
-        gp->setYaw(t->yaw);
-        std::stringstream ss1;
-        ss1.precision(20);
-        ss1 << "UAV " << d->parameters.id << ": going to target position: {lat: " << gp->getLatitude() << ", lon: " << gp->getLongitude() << ", alt: " << gp->getAltitude() << ", yaw: " << gp->getYaw() << "}";
-        print(ss1.str());
-        d->goToGlobalPosition(gp->getLatitude(), gp->getLongitude(), gp->getAltitude(), gp->getYaw(), true);
+//        gp->setLatitude(t->lat);
+//        gp->setLongitude(t->lon);
+//        gp->setYaw(t->yaw);
+//        std::stringstream ss1;
+//        ss1.precision(20);
+//        ss1 << "UAV " << d->parameters.id << ": going to target position: {lat: " << gp->getLatitude() << ", lon: " << gp->getLongitude() << ", alt: " << gp->getAltitude() << ", yaw: " << gp->getYaw() << "}";
+//        print(ss1.str());
+//        d->goToGlobalPosition(gp->getLatitude(), gp->getLongitude(), gp->getAltitude(), gp->getYaw(), true);
 
         // do something
 
@@ -159,14 +159,14 @@ void taskPerformer(multi_uav::Drone *d, double altitude, int taskAssignAtSeconds
 
     // keeps the uav moving in its current position space
 
-    gp->addPositionOffsetInMeters(1*state,1*state);
+//    gp->addPositionOffsetInMeters(1*state,1*state);
     state *= -1;
 
-    std::stringstream ss3;
-    ss3.precision(20);
-    ss3 << "UAV " << d->parameters.id << ": going to position: {lat: " << gp->getLatitude() << ", lon: " << gp->getLongitude() << ", alt: " << gp->getAltitude() << ", yaw: " << gp->getYaw() << "}";
-    print(ss3.str());
-    d->goToGlobalPosition(gp->getLatitude(), gp->getLongitude(), gp->getAltitude(), gp->getYaw(), true);
+//    std::stringstream ss3;
+//    ss3.precision(20);
+//    ss3 << "UAV " << d->parameters.id << ": going to position: {lat: " << gp->getLatitude() << ", lon: " << gp->getLongitude() << ", alt: " << gp->getAltitude() << ", yaw: " << gp->getYaw() << "}";
+//    print(ss3.str());
+//    d->goToGlobalPosition(gp->getLatitude(), gp->getLongitude(), gp->getAltitude(), gp->getYaw(), true);
 
   }
 
@@ -390,7 +390,7 @@ std::vector<std::string> split(const std::string& s, char delimiter){
 }
 
 int main(int argc, char **argv){
-  ros::init(argc, argv, "worker_node");
+  ros::init(argc, argv, "worker_manual_node");
   ros::NodeHandle nh;
 
   statisticsStrPublisher = nh.advertise<std_msgs::String>("statisticsLog", 1);
@@ -409,27 +409,27 @@ int main(int argc, char **argv){
   //get parameters
   std::stringstream ss;
   ss.precision(20);
-  if(nh.hasParam("worker_node/uavId")){
-    nh.getParam("worker_node/uavId", uavId);
+  if(nh.hasParam("worker_manual_node/uavId")){
+    nh.getParam("worker_manual_node/uavId", uavId);
   }
   else {
     ss << "Unable to get uavId parameter.";
     print(ss.str());
     return 0;
   }
-  if(nh.hasParam("worker_node/altitude")){
-    nh.getParam("worker_node/altitude", altitude);
+  if(nh.hasParam("worker_manual_node/altitude")){
+    nh.getParam("worker_manual_node/altitude", altitude);
   }
   else {
     ss << "UAV " << uavId << ": Unable to get altitude parameter.";
     print(ss.str());
     return 0;
   }
-  if(nh.hasParam("worker_node/taskTypes")){
+  if(nh.hasParam("worker_manual_node/taskTypes")){
 
     std::string taskTypesStr;
 
-    nh.getParam("worker_node/taskTypes", taskTypesStr);
+    nh.getParam("worker_manual_node/taskTypes", taskTypesStr);
 
     std::vector<std::string> taskTypesStrArray = split(taskTypesStr, ',');
 
@@ -442,24 +442,24 @@ int main(int argc, char **argv){
     print(ss.str());
     return 0;
   }
-  if(nh.hasParam("worker_node/taskAssignAtSeconds")){
-    nh.getParam("worker_node/taskAssignAtSeconds", taskAssignAtSeconds);
+  if(nh.hasParam("worker_manual_node/taskAssignAtSeconds")){
+    nh.getParam("worker_manual_node/taskAssignAtSeconds", taskAssignAtSeconds);
   }
   else {
     ss << "UAV " << uavId << ": Unable to get taskAssignAtSeconds parameter.";
     print(ss.str());
     return 0;
   }
-  if(nh.hasParam("worker_node/serialPort")){
-    nh.getParam("worker_node/serialPort", serialPort);
+  if(nh.hasParam("worker_manual_node/serialPort")){
+    nh.getParam("worker_manual_node/serialPort", serialPort);
   }
   else {
     ss << "UAV " << uavId << ": Unable to get serialPort parameter.";
     print(ss.str());
     return 0;
   }
-  if(nh.hasParam("worker_node/baud")){
-    nh.getParam("worker_node/baud", baud);
+  if(nh.hasParam("worker_manual_node/baud")){
+    nh.getParam("worker_manual_node/baud", baud);
   }
   else {
     ss << "UAV " << uavId << ": Unable to get baud parameter.";
@@ -478,7 +478,7 @@ int main(int argc, char **argv){
 
     serial->setMessageBlockSize(MESSAGE_BLOCK_SIZE_BYTES);
 
-    multi_uav::Drone *d = new multi_uav::Drone(nh, uavId, false);
+    multi_uav::Drone *d = new multi_uav::Drone(nh, uavId, false, false);
 
     std::thread rosLoopThread(&rosLoop);
     std::thread publishWorkerStatisticsLoopThread(&publishWorkerStatisticsLoop);

@@ -8,7 +8,7 @@
     <arg name="serialPort" default="/dev/ttyUSB0"/>
     <arg name="baud" default="57600"/>
 
-    <node pkg="multi_uav_se_mission" name="worker_node" type="worker_node" output="screen">
+    <node pkg="multi_uav_se_mission" name="worker_manual_node" type="worker_manual_node" output="screen">
         <!-- parameters -->
         <param name="uavId" value="$(arg uavId)" />
         <param name="altitude" value="$(arg altitude)" />

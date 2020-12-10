@@ -3,7 +3,7 @@
 
     <arg name="experimentId" default="1" />
 
-    <group ns="uav1">
+    <group ns="uav2">
 
         <!-- MAVROS -->
         <include file="$(find mavros)/launch/px4.launch">
@@ -14,19 +14,19 @@
         </include>
 
         <!-- worker node -->
-        <node pkg="multi_uav_se_mission" name="worker_node" type="worker_node" output="screen">
-            <param name="uavId" value="1" />
-            <param name="altitude" value="4.0" />
-            <param name="taskTypes" value="0,1,2" />
+        <node pkg="multi_uav_se_mission" name="worker_manual_node" type="worker_manual_node" output="screen">
+            <param name="uavId" value="2" />
+            <param name="altitude" value="6.0" />
+            <param name="taskTypes" value="3,4" />
             <param name="taskAssignAtSeconds" value="5" />
             <param name="serialPort" value="/dev/ttyUSB0" />
             <param name="baud" value="57600" />
-            <remap from="statistics" to="/uav1/statistics/data" />
-            <remap from="statisticsLog" to="/uav1/statistics/log" />
+            <remap from="statistics" to="/uav2/statistics/data" />
+            <remap from="statisticsLog" to="/uav2/statistics/log" />
         </node>
 
         <!-- rosbag -->
-        <node pkg="rosbag" type="record" name="record" args="-o $(find multi_uav_se_mission)/bag/uav1_$(arg experimentId) -a"/>
+        <node pkg="rosbag" type="record" name="record" args="-o $(find multi_uav_se_mission)/bag/uav2_$(arg experimentId) -a"/>
 
     </group>
 

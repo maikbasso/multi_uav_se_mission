@@ -1,6 +1,8 @@
 <?xml version="1.0"?>
 <launch>
 
+    <arg name="experimentId" default="1" />
+
     <!-- delay used to wait for the simulator initialization -->
     <arg name="nodeStartDelay" default="15.0" />
 
@@ -22,6 +24,8 @@
         <param name="minTargetRadiusMeters" value="2.0" />
         <param name="serialPort" value="/tmp/ttyV0" />
         <param name="baud" value="57600" />
+        <remap from="statistics" to="/uav0/statistics/data" />
+        <remap from="statisticsLog" to="/uav0/statistics/log" />
     </node>
 
     <!-- worker node -->
@@ -32,6 +36,11 @@
         <param name="taskAssignAtSeconds" value="5" />
         <param name="serialPort" value="/tmp/ttyV1" />
         <param name="baud" value="57600" />
+        <remap from="statistics" to="/uav1/statistics/data" />
+        <remap from="statisticsLog" to="/uav1/statistics/log" />
     </node>
+
+    <!-- rosbag -->
+    <node pkg="rosbag" type="record" name="record" args="-o $(find multi_uav_se_mission)/bag/simulation_test_$(arg experimentId) -a"/>
 
 </launch>

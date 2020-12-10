@@ -14,7 +14,7 @@
         </include>
 
         <!-- worker node -->
-        <node pkg="multi_uav_se_mission" name="worker_node" type="worker_node" output="screen">
+        <node pkg="multi_uav_se_mission" name="worker_manual_node" type="worker_manual_node" output="screen">
             <param name="uavId" value="1" />
             <param name="altitude" value="4.0" />
             <param name="taskTypes" value="0,1,2" />

@@ -407,7 +407,7 @@ void communicationReceiver(multi_uav_se_mission::CSerial * serial, int uavId){
 }
 
 int main(int argc, char **argv){
-  ros::init(argc, argv, "searcher_node");
+  ros::init(argc, argv, "searcher_manual_node");
   ros::NodeHandle nh;
 
   statisticsStrPublisher = nh.advertise<std_msgs::String>("statisticsLog", 1);
@@ -427,56 +427,56 @@ int main(int argc, char **argv){
   //get parameters
   std::stringstream ss;
   ss.precision(20);
-  if(nh.hasParam("searcher_node/uavId")){
-    nh.getParam("searcher_node/uavId", uavId);
+  if(nh.hasParam("searcher_manual_node/uavId")){
+    nh.getParam("searcher_manual_node/uavId", uavId);
   }
   else {
     ss << "Unable to get uavId parameter.";
     print(ss.str());
     return 0;
   }
-  if(nh.hasParam("searcher_node/minTargetRadiusMeters")){
-    nh.getParam("searcher_node/minTargetRadiusMeters", minTargetRadiusMeters);
+  if(nh.hasParam("searcher_manual_node/minTargetRadiusMeters")){
+    nh.getParam("searcher_manual_node/minTargetRadiusMeters", minTargetRadiusMeters);
   }
   else {
     ss << "UAV " << uavId << ": Unable to get minTargetRadiusMeters parameter.";
     print(ss.str());
     return 0;
   }
-  if(nh.hasParam("searcher_node/missionRadius")){
-    nh.getParam("searcher_node/missionRadius", missionRadius);
+  if(nh.hasParam("searcher_manual_node/missionRadius")){
+    nh.getParam("searcher_manual_node/missionRadius", missionRadius);
   }
   else {
     ss << "UAV " << uavId << ": Unable to get missionRadius parameter.";
     print(ss.str());
     return 0;
   }
-  if(nh.hasParam("searcher_node/missionStep")){
-    nh.getParam("searcher_node/missionStep", missionStep);
+  if(nh.hasParam("searcher_manual_node/missionStep")){
+    nh.getParam("searcher_manual_node/missionStep", missionStep);
   }
   else {
     ss << "UAV " << uavId << ": Unable to get missionStep parameter.";
     print(ss.str());
     return 0;
   }
-  if(nh.hasParam("searcher_node/missionAltitude")){
-    nh.getParam("searcher_node/missionAltitude", missionAltitude);
+  if(nh.hasParam("searcher_manual_node/missionAltitude")){
+    nh.getParam("searcher_manual_node/missionAltitude", missionAltitude);
   }
   else {
     ss << "UAV " << uavId << ": Unable to get missionAltitude parameter.";
     print(ss.str());
     return 0;
   }
-  if(nh.hasParam("searcher_node/serialPort")){
-    nh.getParam("searcher_node/serialPort", serialPort);
+  if(nh.hasParam("searcher_manual_node/serialPort")){
+    nh.getParam("searcher_manual_node/serialPort", serialPort);
   }
   else {
     ss << "UAV " << uavId << ": Unable to get serialPort parameter.";
     print(ss.str());
     return 0;
   }
-  if(nh.hasParam("searcher_node/baud")){
-    nh.getParam("searcher_node/baud", baud);
+  if(nh.hasParam("searcher_manual_node/baud")){
+    nh.getParam("searcher_manual_node/baud", baud);
   }
   else {
     ss << "UAV " << uavId << ": Unable to get baud parameter.";
@@ -495,18 +495,18 @@ int main(int argc, char **argv){
 
     serial->setMessageBlockSize(MESSAGE_BLOCK_SIZE_BYTES);
 
-    multi_uav::Drone *d = new multi_uav::Drone(nh, uavId, false);
+    multi_uav::Drone *d = new multi_uav::Drone(nh, uavId, false, false);
 
     std::thread rosLoopThread(&rosLoop);
     std::thread publishSearsherStatisticsLoopThread(&publishSearsherStatisticsLoop);
-    std::thread uavMissionThread(&uavMission, d, missionRadius, missionStep, missionAltitude);
+    //std::thread uavMissionThread(&uavMission, d, missionRadius, missionStep, missionAltitude); // disable auto control to enable manual control
     std::thread uavDetectionThread(&uavDetection, d, minTargetRadiusMeters);
     std::thread communicationSenderThread(&communicationSender, serial, uavId);
     std::thread communicationReceiverThread(&communicationReceiver, serial, uavId);
 
     rosLoopThread.join();
     publishSearsherStatisticsLoopThread.join();
-    uavMissionThread.join();
+    //uavMissionThread.join();
     uavDetectionThread.join();
     communicationSenderThread.join();
     communicationReceiverThread.join();

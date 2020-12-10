@@ -27,7 +27,7 @@
         <node pkg="rosservice" type="rosservice" name="start_capture" args="call --wait raspicam_node/start_capture"/>
 
         <!-- searcher node -->
-        <node pkg="multi_uav_se_mission" name="searcher_node" type="searcher_node" output="screen">
+        <node pkg="multi_uav_se_mission" name="searcher_manual_node" type="searcher_manual_node" output="screen">
             <param name="uavId" value="0" />
             <param name="missionRadius" value="5.0" />
             <param name="missionStep" value="0.5" />

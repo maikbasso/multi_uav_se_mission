@@ -11,6 +11,6 @@ sh ~/drone_simulator_ws/src/multi_uav_se_mission/scripts/install/install_depende
 ## Running the simulation
 
 ```sh
-source ~/drone_simulator_ws/src/multi_uav_se_mission/scripts/init/init_ws.sh
-roslaunch multi_uav_se_mission simulation_test.launch
+source ~/drone_simulator_ws/src/multi_uav_se_mission/scripts/start/simulation_test.sh <experimentId>
 ```
+<experimentId>: is the experiment number, used to identify bag files.

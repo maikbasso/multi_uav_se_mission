@@ -38,14 +38,7 @@ typedef struct Task {
   std::chrono::seconds createdAt;
 } Task;
 
-typedef struct WorkerCandidate {
-  int taskId;
-  int workerId;
-  double distance;
-} WorkerCandidate;
-
 std::vector<Task *> tasks;
-std::vector<WorkerCandidate *> workerCandidates;
 
 void print(std::string msgStr){
   std_msgs::String msg;
@@ -203,7 +196,7 @@ void communication(multi_uav_se_mission::CSerial *serial, multi_uav::Drone *d, s
     numberOfMessagesReceived++;
 
     // handle all message types
-    if(messageType == (int8_t) 0){
+    if((int) messageType == 0){
 
       //searcher id
       int searcherId = multi_uav_se_mission::TypeParser::ucharArrayToInt(multi_uav_se_mission::Arrays::subvector(frame, i, multi_uav_se_mission::TypeParser::SIZE_INT_BYTES));
@@ -303,7 +296,7 @@ void communication(multi_uav_se_mission::CSerial *serial, multi_uav::Drone *d, s
       }
 
     }
-    else if(messageType == (int8_t) 1){
+    else if((int) messageType == 1){
 
       //searcher id
       int searcherId = multi_uav_se_mission::TypeParser::ucharArrayToInt(multi_uav_se_mission::Arrays::subvector(frame, i, multi_uav_se_mission::TypeParser::SIZE_INT_BYTES));
@@ -340,33 +333,10 @@ void communication(multi_uav_se_mission::CSerial *serial, multi_uav::Drone *d, s
 
       if(taskId != -1){
 
-        // worker candidate
-        WorkerCandidate *wc = new WorkerCandidate();
-        wc->taskId = taskId;
-        wc->workerId = workerId;
-        wc->distance = distance;
-
         // check if task is not for me
-        if(tasks.at(taskId)->distance > wc->distance){
+        if(tasks.at(taskId)->distance > distance && d->parameters.id != workerId){
           tasks.at(taskId)->isForMe = false;
           numberOfAssignTasksForOtherWorkers++;
-        }
-
-        // create the new worker candidate
-        bool canAddWorkerCandidate = true;
-
-        for (int i = 0; i < workerCandidates.size(); i++) {
-          if(
-             workerCandidates.at(i)->taskId == taskId &&
-             workerCandidates.at(i)->workerId == workerId
-             ){
-            canAddWorkerCandidate = false;
-            break;
-          }
-        }
-
-        if(canAddWorkerCandidate){
-          workerCandidates.push_back(wc);
         }
 
       }
@@ -409,27 +379,27 @@ int main(int argc, char **argv){
   //get parameters
   std::stringstream ss;
   ss.precision(20);
-  if(nh.hasParam("worker_manual_node/uavId")){
-    nh.getParam("worker_manual_node/uavId", uavId);
+  if(nh.hasParam(ros::this_node::getName() + "/uavId")){
+    nh.getParam(ros::this_node::getName() + "/uavId", uavId);
   }
   else {
     ss << "Unable to get uavId parameter.";
     print(ss.str());
     return 0;
   }
-  if(nh.hasParam("worker_manual_node/altitude")){
-    nh.getParam("worker_manual_node/altitude", altitude);
+  if(nh.hasParam(ros::this_node::getName() + "/altitude")){
+    nh.getParam(ros::this_node::getName() + "/altitude", altitude);
   }
   else {
     ss << "UAV " << uavId << ": Unable to get altitude parameter.";
     print(ss.str());
     return 0;
   }
-  if(nh.hasParam("worker_manual_node/taskTypes")){
+  if(nh.hasParam(ros::this_node::getName() + "/taskTypes")){
 
     std::string taskTypesStr;
 
-    nh.getParam("worker_manual_node/taskTypes", taskTypesStr);
+    nh.getParam(ros::this_node::getName() + "/taskTypes", taskTypesStr);
 
     std::vector<std::string> taskTypesStrArray = split(taskTypesStr, ',');
 
@@ -442,24 +412,24 @@ int main(int argc, char **argv){
     print(ss.str());
     return 0;
   }
-  if(nh.hasParam("worker_manual_node/taskAssignAtSeconds")){
-    nh.getParam("worker_manual_node/taskAssignAtSeconds", taskAssignAtSeconds);
+  if(nh.hasParam(ros::this_node::getName() + "/taskAssignAtSeconds")){
+    nh.getParam(ros::this_node::getName() + "/taskAssignAtSeconds", taskAssignAtSeconds);
   }
   else {
     ss << "UAV " << uavId << ": Unable to get taskAssignAtSeconds parameter.";
     print(ss.str());
     return 0;
   }
-  if(nh.hasParam("worker_manual_node/serialPort")){
-    nh.getParam("worker_manual_node/serialPort", serialPort);
+  if(nh.hasParam(ros::this_node::getName() + "/serialPort")){
+    nh.getParam(ros::this_node::getName() + "/serialPort", serialPort);
   }
   else {
     ss << "UAV " << uavId << ": Unable to get serialPort parameter.";
     print(ss.str());
     return 0;
   }
-  if(nh.hasParam("worker_manual_node/baud")){
-    nh.getParam("worker_manual_node/baud", baud);
+  if(nh.hasParam(ros::this_node::getName() + "/baud")){
+    nh.getParam(ros::this_node::getName() + "/baud", baud);
   }
   else {
     ss << "UAV " << uavId << ": Unable to get baud parameter.";

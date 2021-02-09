@@ -351,13 +351,13 @@ void communicationReceiver(multi_uav_se_mission::CSerial * serial, int uavId){
       int8_t frameIdentification = multi_uav_se_mission::TypeParser::ucharToInt8t(frame[i]);
       i += multi_uav_se_mission::TypeParser::SIZE_INT8_T_BYTES;
 
-      if(frameIdentification != (int8_t) -128) continue;
+      if((int) frameIdentification != -128) continue;
 
       // message type
       int8_t messageType = multi_uav_se_mission::TypeParser::ucharToInt8t(frame[i]);
       i += multi_uav_se_mission::TypeParser::SIZE_INT8_T_BYTES;
 
-      if(messageType != (int8_t) 1) continue;
+      if((int) messageType != 1) continue;
 
       // searcher id
       int searcherId = multi_uav_se_mission::TypeParser::ucharArrayToInt(multi_uav_se_mission::Arrays::subvector(frame, i, multi_uav_se_mission::TypeParser::SIZE_INT_BYTES));
@@ -427,56 +427,56 @@ int main(int argc, char **argv){
   //get parameters
   std::stringstream ss;
   ss.precision(20);
-  if(nh.hasParam("searcher_manual_node/uavId")){
-    nh.getParam("searcher_manual_node/uavId", uavId);
+  if(nh.hasParam(ros::this_node::getName() + "/uavId")){
+    nh.getParam(ros::this_node::getName() + "/uavId", uavId);
   }
   else {
     ss << "Unable to get uavId parameter.";
     print(ss.str());
     return 0;
   }
-  if(nh.hasParam("searcher_manual_node/minTargetRadiusMeters")){
-    nh.getParam("searcher_manual_node/minTargetRadiusMeters", minTargetRadiusMeters);
+  if(nh.hasParam(ros::this_node::getName() + "/minTargetRadiusMeters")){
+    nh.getParam(ros::this_node::getName() + "/minTargetRadiusMeters", minTargetRadiusMeters);
   }
   else {
     ss << "UAV " << uavId << ": Unable to get minTargetRadiusMeters parameter.";
     print(ss.str());
     return 0;
   }
-  if(nh.hasParam("searcher_manual_node/missionRadius")){
-    nh.getParam("searcher_manual_node/missionRadius", missionRadius);
+  if(nh.hasParam(ros::this_node::getName() + "/missionRadius")){
+    nh.getParam(ros::this_node::getName() + "/missionRadius", missionRadius);
   }
   else {
     ss << "UAV " << uavId << ": Unable to get missionRadius parameter.";
     print(ss.str());
     return 0;
   }
-  if(nh.hasParam("searcher_manual_node/missionStep")){
-    nh.getParam("searcher_manual_node/missionStep", missionStep);
+  if(nh.hasParam(ros::this_node::getName() + "/missionStep")){
+    nh.getParam(ros::this_node::getName() + "/missionStep", missionStep);
   }
   else {
     ss << "UAV " << uavId << ": Unable to get missionStep parameter.";
     print(ss.str());
     return 0;
   }
-  if(nh.hasParam("searcher_manual_node/missionAltitude")){
-    nh.getParam("searcher_manual_node/missionAltitude", missionAltitude);
+  if(nh.hasParam(ros::this_node::getName() + "/missionAltitude")){
+    nh.getParam(ros::this_node::getName() + "/missionAltitude", missionAltitude);
   }
   else {
     ss << "UAV " << uavId << ": Unable to get missionAltitude parameter.";
     print(ss.str());
     return 0;
   }
-  if(nh.hasParam("searcher_manual_node/serialPort")){
-    nh.getParam("searcher_manual_node/serialPort", serialPort);
+  if(nh.hasParam(ros::this_node::getName() + "/serialPort")){
+    nh.getParam(ros::this_node::getName() + "/serialPort", serialPort);
   }
   else {
     ss << "UAV " << uavId << ": Unable to get serialPort parameter.";
     print(ss.str());
     return 0;
   }
-  if(nh.hasParam("searcher_manual_node/baud")){
-    nh.getParam("searcher_manual_node/baud", baud);
+  if(nh.hasParam(ros::this_node::getName() + "/baud")){
+    nh.getParam(ros::this_node::getName() + "/baud", baud);
   }
   else {
     ss << "UAV " << uavId << ": Unable to get baud parameter.";

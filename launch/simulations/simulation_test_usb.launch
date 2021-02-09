@@ -6,12 +6,9 @@
     <!-- delay used to wait for the simulator initialization -->
     <arg name="nodeStartDelay" default="15.0" />
 
-    <!-- setup the virtual serial ports -->
-    <node pkg="multi_uav_se_mission" type="setup_virtual_serial_ports.sh" args="" name="setup_virtual_serial_ports_script" output="screen" />
-
     <!-- simulator -->
     <include file="$(find multi_uav_se_mission)/launch/environment/multi_uav.launch">
-        <arg name="numberUAVs" value="2"/>
+        <arg name="numberUAVs" value="3"/>
         <arg name="worldName" value="world_test"/>
     </include>
 
@@ -22,22 +19,34 @@
         <param name="missionStep" value="2.0" />
         <param name="missionAltitude" value="2.0" />
         <param name="minTargetRadiusMeters" value="2.0" />
-        <param name="serialPort" value="/tmp/ttyV0" />
+        <param name="serialPort" value="/dev/ttyUSB0" />
         <param name="baud" value="57600" />
         <remap from="statistics" to="/uav0/statistics/data" />
         <remap from="statisticsLog" to="/uav0/statistics/log" />
     </node>
 
     <!-- worker node -->
-    <node pkg="multi_uav_se_mission" name="worker_node" type="worker_node" output="screen" launch-prefix="bash -c 'sleep $(arg nodeStartDelay); $0 $@'">
+    <node pkg="multi_uav_se_mission" name="worker_1_node" type="worker_node" output="screen" launch-prefix="bash -c 'sleep $(arg nodeStartDelay); $0 $@'">
         <param name="uavId" value="1" />
         <param name="altitude" value="5.0" />
         <param name="taskTypes" value="0,1,2,3,4" />
-        <param name="taskAssignAtSeconds" value="5" />
-        <param name="serialPort" value="/tmp/ttyV1" />
+        <param name="taskAssignAtSeconds" value="10" />
+        <param name="serialPort" value="/dev/ttyUSB1" />
         <param name="baud" value="57600" />
         <remap from="statistics" to="/uav1/statistics/data" />
         <remap from="statisticsLog" to="/uav1/statistics/log" />
+    </node>
+
+    <!-- worker node -->
+    <node pkg="multi_uav_se_mission" name="worker_2_node" type="worker_node" output="screen" launch-prefix="bash -c 'sleep $(arg nodeStartDelay); $0 $@'">
+        <param name="uavId" value="2" />
+        <param name="altitude" value="10.0" />
+        <param name="taskTypes" value="0,1,2,3,4" />
+        <param name="taskAssignAtSeconds" value="10" />
+        <param name="serialPort" value="/dev/ttyUSB2" />
+        <param name="baud" value="57600" />
+        <remap from="statistics" to="/uav2/statistics/data" />
+        <remap from="statisticsLog" to="/uav2/statistics/log" />
     </node>
 
     <!-- rosbag

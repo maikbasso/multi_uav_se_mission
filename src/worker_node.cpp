@@ -74,7 +74,7 @@ void publishStatisticMessage0(int searcherId, int objectId, int objectType, doub
   std::stringstream ss;
   ss.precision(8);
   ss << "message0;";
-  ss << ros::Time::now().toSec();
+  ss << ros::Time::now().toSec() << ";";
   ss << searcherId << ";";
   ss << objectId << ";";
   ss << objectType << ";";
@@ -93,7 +93,7 @@ void publishStatisticMessage1(int searcherId, int workerId, int objectId, int ob
   std::stringstream ss;
   ss.precision(8);
   ss << "message1;";
-  ss << ros::Time::now().toSec();
+  ss << ros::Time::now().toSec() << ";";
   ss << searcherId << ";";
   ss << workerId << ";";
   ss << objectId << ";";

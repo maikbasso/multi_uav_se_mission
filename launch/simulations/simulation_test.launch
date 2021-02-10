@@ -26,6 +26,8 @@
         <param name="baud" value="57600" />
         <remap from="statistics" to="/uav0/statistics/data" />
         <remap from="statisticsLog" to="/uav0/statistics/log" />
+        <remap from="statisticsMessages" to="/uav0/statistics/messages" />
+        <remap from="statisticsTargets" to="/uav0/statistics/targets" />
     </node>
 
     <!-- worker node -->
@@ -38,9 +40,16 @@
         <param name="baud" value="57600" />
         <remap from="statistics" to="/uav1/statistics/data" />
         <remap from="statisticsLog" to="/uav1/statistics/log" />
+        <remap from="statisticsMessages" to="/uav1/statistics/messages" />
+        <remap from="statisticsTasks" to="/uav1/statistics/tasks" />
     </node>
 
-    <!-- rosbag
-    <node pkg="rosbag" type="record" name="record" args="-o $(find multi_uav_se_mission)/bag/simulation_test_$(arg experimentId) -a"/>-->
+    <!-- rosbag -->
+    <node
+        pkg="rosbag"
+        type="record"
+        name="record"
+        args="-o $(find multi_uav_se_mission)/bag/simulation_test_$(arg experimentId) -a -x (.*)/camera(.*)"
+    />
 
 </launch>

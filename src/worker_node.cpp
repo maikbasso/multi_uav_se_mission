@@ -23,6 +23,7 @@ int numberOfTasksReceived = 0;
 int numberOfAssignTasksForOtherWorkers = 0;
 int numberOfCompletedTasks = 0;
 ros::Publisher statisticsStrPublisher;
+ros::Publisher statisticsMessagesPublisher;
 
 typedef struct Task {
   int searcherId;
@@ -36,21 +37,79 @@ typedef struct Task {
   bool isForMe;
   bool isAccomplished;
   std::chrono::seconds createdAt;
+
+  std::string toString(){
+    std::stringstream ss;
+    ss << "searcherId=" << searcherId;
+    ss << ";objectId=" << objectId;
+    ss << ";objectType=" << objectType;
+    ss << ";lat=" << lat;
+    ss << ";lon=" << lon;
+    ss << ";alt=" << alt;
+    ss << ";yaw=" << yaw;
+    ss << ";distance=" << distance;
+    ss << ";isForMe=" << isForMe;
+    ss << ";isAccomplished=" << isAccomplished;
+    return ss.str();
+  }
+
 } Task;
 
 std::vector<Task *> tasks;
 
 void print(std::string msgStr){
+
+  // print
+  std::cout << msgStr << std::endl;
+
+  // publish message
   std_msgs::String msg;
   msg.data = msgStr;
   statisticsStrPublisher.publish(msg);
-  std::cout << msgStr << std::endl;
+
+}
+
+void publishStatisticMessage0(int searcherId, int objectId, int objectType, double lat, double lon, double alt, double yaw){
+
+  std::stringstream ss;
+  ss.precision(8);
+  ss << "message0;";
+  ss << ros::Time::now().toSec();
+  ss << searcherId << ";";
+  ss << objectId << ";";
+  ss << objectType << ";";
+  ss << lat << ";";
+  ss << lon << ";";
+  ss << alt << ";";
+  ss << yaw << ";";
+
+  std_msgs::String msg;
+  msg.data = ss.str();
+  statisticsMessagesPublisher.publish(msg);
+}
+
+void publishStatisticMessage1(int searcherId, int workerId, int objectId, int objectType, double distance, double minDistance){
+
+  std::stringstream ss;
+  ss.precision(8);
+  ss << "message1;";
+  ss << ros::Time::now().toSec();
+  ss << searcherId << ";";
+  ss << workerId << ";";
+  ss << objectId << ";";
+  ss << objectType << ";";
+  ss << distance << ";";
+  ss << minDistance << ";";
+
+  std_msgs::String msg;
+  msg.data = ss.str();
+  statisticsMessagesPublisher.publish(msg);
 }
 
 void printFrame(int uavId, std::string msg, std::vector<unsigned char> frame){
 
   std::stringstream ss;
-  ss << "UAV " << uavId << ": " << msg << " ";
+  ss << "UAV " << uavId << "= " << msg << " ";
   for (int i = 0; i < frame.size(); i++) {
     int n = (int) multi_uav_se_mission::TypeParser::ucharToInt8t(frame[i]);
     ss << n << " ";
@@ -69,20 +128,30 @@ void rosLoop(){
 
 void publishWorkerStatisticsLoop(){
   ros::NodeHandle nh;
-  ros::Publisher pub = nh.advertise<multi_uav_se_mission::WorkerStatistics>("statistics", 1);
+  ros::Publisher statisticsPublisher = nh.advertise<multi_uav_se_mission::WorkerStatistics>("statistics", 1);
+  ros::Publisher statisticsTaskArrayPublisher = nh.advertise<std_msgs::String>("statisticsTasks", 1);
 
   // ros loop
   ros::Rate rate(1);
   while (ros::ok()) {
 
+    // numerical statistics
     multi_uav_se_mission::WorkerStatistics msg;
     msg.numberOfMessagesSent = numberOfMessagesSent;
     msg.numberOfMessagesReceived = numberOfMessagesReceived;
     msg.numberOfTasksReceived = numberOfTasksReceived;
     msg.numberOfAssignTasksForOtherWorkers = numberOfAssignTasksForOtherWorkers;
     msg.numberOfCompletedTasks = numberOfCompletedTasks;
+    statisticsPublisher.publish(msg);
 
-    pub.publish(msg);
+    // publish task array
+    std::stringstream ssTask;
+    for (int i=0; i<tasks.size(); i++) {
+      ssTask << i << "=" << tasks[i]->toString() << ";";
+    }
+    std_msgs::String msgTask;
+    msgTask.data = ssTask.str();
+    statisticsTaskArrayPublisher.publish(msgTask);
 
     rate.sleep();
   }
@@ -110,7 +179,7 @@ void taskPerformer(multi_uav::Drone *d, double altitude, int taskAssignAtSeconds
 
   std::stringstream ss;
   ss.precision(20);
-  ss << "UAV " << d->parameters.id << ": going to position: {lat: " << gp->getLatitude() << ", lon: " << gp->getLongitude() << ", alt: " << gp->getAltitude() << ", yaw: " << gp->getYaw() << "}";
+  ss << "UAV " << d->parameters.id << "= going to position= {lat= " << gp->getLatitude() << "; lon= " << gp->getLongitude() << "; alt= " << gp->getAltitude() << "; yaw= " << gp->getYaw() << "}";
   print(ss.str());
 
   d->goToGlobalPosition(gp->getLatitude(), gp->getLongitude(), gp->getAltitude(), gp->getYaw(), true);
@@ -136,7 +205,7 @@ void taskPerformer(multi_uav::Drone *d, double altitude, int taskAssignAtSeconds
         gp->setYaw(t->yaw);
         std::stringstream ss1;
         ss1.precision(20);
-        ss1 << "UAV " << d->parameters.id << ": going to target position: {lat: " << gp->getLatitude() << ", lon: " << gp->getLongitude() << ", alt: " << gp->getAltitude() << ", yaw: " << gp->getYaw() << "}";
+        ss1 << "UAV " << d->parameters.id << "= going to target position= {lat= " << gp->getLatitude() << "; lon= " << gp->getLongitude() << "; alt= " << gp->getAltitude() << "; yaw= " << gp->getYaw() << "}";
         print(ss1.str());
         d->goToGlobalPosition(gp->getLatitude(), gp->getLongitude(), gp->getAltitude(), gp->getYaw(), true);
 
@@ -157,7 +226,7 @@ void taskPerformer(multi_uav::Drone *d, double altitude, int taskAssignAtSeconds
 
     std::stringstream ss3;
     ss3.precision(20);
-    ss3 << "UAV " << d->parameters.id << ": going to position: {lat: " << gp->getLatitude() << ", lon: " << gp->getLongitude() << ", alt: " << gp->getAltitude() << ", yaw: " << gp->getYaw() << "}";
+    ss3 << "UAV " << d->parameters.id << "= going to position= {lat= " << gp->getLatitude() << "; lon= " << gp->getLongitude() << "; alt= " << gp->getAltitude() << "; yaw= " << gp->getYaw() << "}";
     print(ss3.str());
     d->goToGlobalPosition(gp->getLatitude(), gp->getLongitude(), gp->getAltitude(), gp->getYaw(), true);
 
@@ -220,6 +289,7 @@ void communication(multi_uav_se_mission::CSerial *serial, multi_uav::Drone *d, s
       float yaw = multi_uav_se_mission::TypeParser::ucharArrayToFloat(multi_uav_se_mission::Arrays::subvector(frame, i, multi_uav_se_mission::TypeParser::SIZE_FLOAT_BYTES));
       i += multi_uav_se_mission::TypeParser::SIZE_FLOAT_BYTES;
 
+      publishStatisticMessage0(searcherId, objectId, objectType, lat, lon, alt, yaw);
 
       // verify if can perform the task
       if(multi_uav_se_mission::Arrays::contains(taskTypes, objectType)){
@@ -252,6 +322,8 @@ void communication(multi_uav_se_mission::CSerial *serial, multi_uav::Drone *d, s
         multi_uav_se_mission::Arrays::emplaceBack(msg1Frame, multi_uav_se_mission::TypeParser::floatToUcharArray(distance));
 
         serial->writeDataInBlocks(msg1Frame);
+
+        publishStatisticMessage1(searcherId, d->parameters.id, objectId, objectType, distance, 0.0);
 
         numberOfMessagesSent++;
 
@@ -318,6 +390,8 @@ void communication(multi_uav_se_mission::CSerial *serial, multi_uav::Drone *d, s
       float distance = multi_uav_se_mission::TypeParser::ucharArrayToFloat(multi_uav_se_mission::Arrays::subvector(frame, i, multi_uav_se_mission::TypeParser::SIZE_FLOAT_BYTES));
       i += multi_uav_se_mission::TypeParser::SIZE_FLOAT_BYTES;
 
+      publishStatisticMessage1(searcherId, workerId, objectId, objectType, distance, 0.0);
+
 
       // verificar a lista de tarefas para ver se a tarefa existe
       int taskId = -1;
@@ -365,6 +439,7 @@ int main(int argc, char **argv){
   ros::NodeHandle nh;
 
   statisticsStrPublisher = nh.advertise<std_msgs::String>("statisticsLog", 1);
+  statisticsMessagesPublisher = nh.advertise<std_msgs::String>("statisticsMessages", 1);
 
   // configuring cout precision
   std::cout.precision(20);
@@ -392,7 +467,7 @@ int main(int argc, char **argv){
     nh.getParam(ros::this_node::getName() + "/altitude", altitude);
   }
   else {
-    ss << "UAV " << uavId << ": Unable to get altitude parameter.";
+    ss << "UAV " << uavId << "= Unable to get altitude parameter.";
     print(ss.str());
     return 0;
   }
@@ -409,7 +484,7 @@ int main(int argc, char **argv){
     }
   }
   else {
-    ss << "UAV " << uavId << ": Unable to get taskTypes parameter.";
+    ss << "UAV " << uavId << "= Unable to get taskTypes parameter.";
     print(ss.str());
     return 0;
   }
@@ -417,7 +492,7 @@ int main(int argc, char **argv){
     nh.getParam(ros::this_node::getName() + "/taskAssignAtSeconds", taskAssignAtSeconds);
   }
   else {
-    ss << "UAV " << uavId << ": Unable to get taskAssignAtSeconds parameter.";
+    ss << "UAV " << uavId << "= Unable to get taskAssignAtSeconds parameter.";
     print(ss.str());
     return 0;
   }
@@ -425,7 +500,7 @@ int main(int argc, char **argv){
     nh.getParam(ros::this_node::getName() + "/serialPort", serialPort);
   }
   else {
-    ss << "UAV " << uavId << ": Unable to get serialPort parameter.";
+    ss << "UAV " << uavId << "= Unable to get serialPort parameter.";
     print(ss.str());
     return 0;
   }
@@ -433,7 +508,7 @@ int main(int argc, char **argv){
     nh.getParam(ros::this_node::getName() + "/baud", baud);
   }
   else {
-    ss << "UAV " << uavId << ": Unable to get baud parameter.";
+    ss << "UAV " << uavId << "= Unable to get baud parameter.";
     print(ss.str());
     return 0;
   }
@@ -442,7 +517,7 @@ int main(int argc, char **argv){
 
   std::stringstream ss1;
   ss1.precision(20);
-  ss1 << "UAV " << uavId << ": Connecting on serialPort = " << serialPort << " baud = " << baud;
+  ss1 << "UAV " << uavId << "= Connecting on serialPort = " << serialPort << " baud = " << baud;
   print(ss.str());
 
   if(serial->openPort(serialPort, baud)){
@@ -465,7 +540,7 @@ int main(int argc, char **argv){
   else{
     std::stringstream ss2;
     ss2.precision(20);
-    ss2 << "UAV " << uavId << ": Could not connect to serial port!";
+    ss2 << "UAV " << uavId << "= Could not connect to serial port!";
     print(ss2.str());
   }
 

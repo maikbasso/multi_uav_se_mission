@@ -20,6 +20,8 @@
         <param name="baud" value="$(arg baud)" />
         <remap from="statistics" to="/uav$(arg uavId)/statistics/data" />
         <remap from="statisticsLog" to="/uav$(arg uavId)/statistics/log" />
+        <remap from="statisticsMessages" to="/uav$(arg uavId)/statistics/messages" />
+        <remap from="statisticsTargets" to="/uav$(arg uavId)/statistics/targets" />
     </node>
 
 </launch>

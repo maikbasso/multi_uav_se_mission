@@ -17,8 +17,8 @@
         <node pkg="multi_uav_se_mission" name="worker_manual_node" type="worker_manual_node" output="screen">
             <param name="uavId" value="2" />
             <param name="altitude" value="6.0" />
-            <param name="taskTypes" value="3,4" />
-            <param name="taskAssignAtSeconds" value="5" />
+            <param name="taskTypes" value="1,2,3" />
+            <param name="taskAssignAtSeconds" value="10" />
             <param name="serialPort" value="/dev/ttyUSB0" />
             <param name="baud" value="57600" />
             <remap from="statistics" to="/uav2/statistics/data" />
